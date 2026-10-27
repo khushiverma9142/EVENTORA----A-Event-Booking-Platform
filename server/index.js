@@ -21,8 +21,10 @@ app.use(cors({
   origin: [
     'http://localhost:5173',
     process.env.CLIENT_URL,
-    'https://eventora-a-event-booking-app-6yyg-7lse9vfid-khushi-c689.vercel.app'
-  ].filter(Boolean)
+    'https://eventora-a-event-booking-app-zut6-p0v6k122u-khushi-c689.vercel.app'
+  ].filter(Boolean),
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 app.use(express.json());
