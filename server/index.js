@@ -20,7 +20,8 @@ const PORT = process.env.PORT || 5000;
 app.use(cors({
   origin: [
     'http://localhost:5173',
-    process.env.CLIENT_URL
+    process.env.CLIENT_URL,
+    'https://eventora-a-event-booking-app-6yyg-7lse9vfid-khushi-c689.vercel.app'
   ].filter(Boolean)
 }));
 
