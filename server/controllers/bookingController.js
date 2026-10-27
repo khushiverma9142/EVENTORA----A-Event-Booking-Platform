@@ -22,8 +22,8 @@ exports.bookEvent = async (req, res) => {
         const { eventId, otp } = req.body;
 
         // Verify OTP explicitly before proceeding
-        const otpRecord = await OTP.findOne({ email: req.user.email, otp, action: 'event_booking' });
-        if (!otpRecord) {
+        const validOTP = await OTP.findOne({ email: req.user.email, otp, action: 'event_booking' });
+        if (!validOTP) {
             return res.status(400).json({ message: 'Invalid or expired OTP for booking' });
         }
 
@@ -44,7 +44,7 @@ exports.bookEvent = async (req, res) => {
             amount: event.ticketPrice
         });
 
-        await OTP.deleteOne({ _id: otpRecord._id }); // cleanup
+        await OTP.deleteOne({ _id: validOTP._id }); // cleanup
 
         res.status(201).json({ message: 'Booking request submitted', booking });
     } catch (error) {
@@ -52,40 +52,100 @@ exports.bookEvent = async (req, res) => {
     }
 };
 
+
 exports.confirmBooking = async (req, res) => {
     try {
-        const { paymentStatus } = req.body; // 'paid' or 'not_paid'
-        const booking = await Booking.findById(req.params.id).populate('userId').populate('eventId');
-        if (!booking) return res.status(404).json({ message: 'Booking not found' });
+        const { paymentStatus } = req.body;
 
-        if (booking.status === 'confirmed') return res.status(400).json({ message: 'Booking is already confirmed' });
+        if (!['paid', 'not_paid'].includes(paymentStatus)) {
+            return res.status(400).json({
+                message: 'Invalid payment status'
+            });
+        }
 
-        const event = await Event.findById(booking.eventId._id);
+        const booking = await Booking.findById(req.params.id)
+            .populate('userId')
+            .populate('eventId');
+
+        if (!booking) {
+            return res.status(404).json({
+                message: 'Booking not found'
+            });
+        }
+
+        if (booking.status === 'confirmed') {
+            return res.status(400).json({
+                message: 'Booking is already confirmed'
+            });
+        }
+
+        if (booking.status === 'cancelled') {
+            return res.status(400).json({
+                message: 'Cancelled booking cannot be confirmed'
+            });
+        }
+
+        const event = await Event.findById(booking.eventId?._id);
+
+        if (!event) {
+            return res.status(404).json({
+                message: 'Event not found'
+            });
+        }
+
         if (event.availableSeats <= 0) {
-            return res.status(400).json({ message: 'No seats available to confirm this booking' });
+            return res.status(400).json({
+                message: 'No seats available to confirm this booking'
+            });
         }
 
         booking.status = 'confirmed';
-        if (paymentStatus) {
-            booking.paymentStatus = paymentStatus;
-        }
+        booking.paymentStatus = paymentStatus;
+
         await booking.save();
 
         event.availableSeats -= 1;
         await event.save();
 
-        // Send email on admin confirmation
-        await sendBookingEmail(booking.userId.email, booking.userId.name, booking.eventId.title);
+        // Respond based on the successful database updates.
+        res.json({
+            message: 'Booking confirmed successfully',
+            booking
+        });
 
-        res.json({ message: 'Booking confirmed successfully', booking });
+        // Email failure should not make a successful confirmation
+        // appear to have failed.
+        try {
+            await sendBookingEmail(
+                booking.userId.email,
+                booking.userId.name,
+                booking.eventId.title
+            );
+        } catch (emailError) {
+            console.error(
+                'Booking confirmation email failed:',
+                emailError.message
+            );
+        }
+
     } catch (error) {
-        res.status(500).json({ message: 'Server Error', error: error.message });
+        console.error('Confirm booking error:', error);
+
+        if (!res.headersSent) {
+            res.status(500).json({
+                message: 'Server Error',
+                error: error.message
+            });
+        }
     }
 };
 
+
 exports.getMyBookings = async (req, res) => {
     try {
-        const bookings=await Booking.find({userId:req.user._id}).populate('eventId');
+        const bookings = req.user.role === 'admin'
+            ? await Booking.find().populate('eventId').populate('userId', 'name email').sort({ createdAt: -1 })
+            : await Booking.find({ userId: req.user.id }).populate('eventId').sort({ createdAt: -1 });
         res.json(bookings);
     } catch (error) {
         res.status(500).json({ message: 'Server Error', error: error.message });
