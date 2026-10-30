@@ -41,18 +41,20 @@ const EventDetail = () => {
 
         try {
             if (!showOTP) {
-                await api.post('/booking/send-otp');
+                await api.post('/bookings/send-otp');
                 setShowOTP(true);
                 setSuccessMsg('OTP sent to your email. Please verify to confirm booking.');
             } else {
-                await api.post('/booking', { eventId: event._id, otp });
+                await api.post('/bookings', { eventId: event._id, otp });
                 setSuccessMsg('Booking requested! Awaiting admin confirmation.');
                 setShowOTP(false);
                 // Update local seats count dynamically after booking
                 setEvent({ ...event, availableSeats: event.availableSeats - 1 });
             }
-        } catch (err) {
-            setError(err.response?.data?.message || 'Booking failed');
+        }  catch (err) {
+    console.log("Booking error:", err.response?.data);
+    setError(err.response?.data?.message || 'Booking failed');
+
         } finally {
             setBookingLoading(false);
         }
