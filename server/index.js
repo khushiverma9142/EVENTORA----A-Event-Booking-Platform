@@ -15,16 +15,18 @@ const bookingRoutes = require("./routes/booking");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+app.listen(PORT,()=>{
+  console.log(`Server running on ${PORT}`);
+});
 
 // Enable CORS for the React frontend
 app.use(cors({
   origin: [
     'http://localhost:5173',
     process.env.CLIENT_URL,
-    'https://eventora-a-event-booking-app-zut6-p0v6k122u-khushi-c689.vercel.app'
-  ].filter(Boolean),
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+    
+  ],
+  credentials:true
 }));
 
 app.use(express.json());
