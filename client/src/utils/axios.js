@@ -1,7 +1,7 @@
 
 import axios from 'axios';
 
-const API = axios.create({
+const api = axios.create({
   baseURL: "https://eventora-a-event-booking-platform-1n7j.onrender.com/api"
 });
 
