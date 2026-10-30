@@ -15,13 +15,8 @@ const bookingRoutes = require("./routes/booking");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-app.listen(PORT,()=>{
-  console.log(`Server running on ${PORT}`);
-});
 
-// Enable CORS for the React frontend
-
-
+// CORS configuration
 const allowedOrigins = [
   "http://localhost:5173",
   "https://eventora-a-event-booking-platform.vercel.app"
@@ -39,23 +34,28 @@ app.use(cors({
   allowedHeaders: ["Content-Type", "Authorization"]
 }));
 
-app.use(cors(corsOptions));
 app.use(express.json());
 
-// Routes
+// API Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/events", eventRoutes);
 app.use("/api/bookings", bookingRoutes);
 
+// Test route
+app.get("/", (req, res) => {
+  res.send("Eventora Backend is Running!");
+});
+
+// Connect MongoDB and start server
 mongoose
   .connect(process.env.MONGO_URI)
   .then(() => {
     console.log("MongoDB connected successfully");
 
     app.listen(PORT, () => {
-      console.log(`Server is running on port ${PORT}`);
+      console.log(`Server running on port ${PORT}`);
     });
   })
   .catch((error) => {
-    console.error("Error connecting to MongoDB:", error);
+    console.error("MongoDB connection error:", error);
   });
